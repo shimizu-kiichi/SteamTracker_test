@@ -744,6 +744,12 @@
           uploadData.id ||
           '';
 
+        const photoForSubmit = uploadedPhotoUrl || uploadedPhotoId;
+
+        if (!photoForSubmit) {
+          throw new Error('写真アップロード結果に URL / ID がありません');
+        }
+
         // GASに送信（フォームデータ）
         msgEl.textContent = 'データを送信中...';
         await callGAS('submitForm', {
@@ -752,7 +758,7 @@
           organization: document.getElementById('organization').value.trim(),
           date: selected,
           photoUrl: uploadedPhotoUrl,
-          photo: uploadedPhotoUrl,
+          photo: photoForSubmit,
           fileUrl: uploadedPhotoUrl,
           imageUrl: uploadedPhotoUrl,
           photoId: uploadedPhotoId,
