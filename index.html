@@ -743,9 +743,10 @@
         submitBtn.disabled = true;
 
       } catch (err) {
+        const detail = (err && err.message) ? err.message : String(err || '不明なエラー');
         msgEl.className = 'error';
-        msgEl.textContent = 'エラーが発生しました。時間をおいて再度お試しください。';
-        console.error(err);
+        msgEl.textContent = `エラーが発生しました: ${detail}`;
+        console.error('送信処理エラー:', err);
         submitBtn.disabled = false;
         submitBtn.textContent = originalText;
       }
