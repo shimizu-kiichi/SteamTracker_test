@@ -82,13 +82,13 @@
 
     .hero-title::before {
       left: calc(50% - 8px - 64px);
-      background-image: url("https://lh3.googleusercontent.com/d/1LL1NpqQoEwytkWkvYq4-9XmTBNRyEwsD=w256");
+      background-image: url("stuffFormロゴ/RDXロゴ.jpg");
       background-size: 120%;
     }
 
     .hero-title::after {
       left: calc(50% + 8px);
-      background-image: url("https://lh3.googleusercontent.com/d/1XoekcUn2g8YLIi8iw3mPVNh6pd6-f8_E=w256");
+      background-image: url("stuffFormロゴ/STEAMコモンズロゴ.jpg");
       background-size: 100%;
     }
 
@@ -508,14 +508,28 @@
       const body = JSON.stringify({ action, ...payload });
       const res = await fetch(GAS_URL, {
         method: 'POST',
-        // GASのCORS制限のためno-corsを使用
-        // → レスポンスは読めないため、送信成功=登録完了とみなす
-        mode: 'no-cors',
+        // doPost + CORS対応済みのWebアプリURLを前提にする
+        mode: 'cors',
         headers: { 'Content-Type': 'text/plain' },
         body
       });
-      // no-corsではレスポンスボディが読めないため成功扱いを返す
-      return { status: 'ok' };
+
+      if (!res.ok) {
+        throw new Error(`HTTP ${res.status}`);
+      }
+
+      let json;
+      try {
+        json = await res.json();
+      } catch (_) {
+        throw new Error('GASの応答(JSON)を読み取れませんでした');
+      }
+
+      if (!json || json.status !== 'ok') {
+        throw new Error((json && json.message) || 'GASでエラーが発生しました');
+      }
+
+      return json;
     }
 
     // ============================================================
@@ -661,6 +675,12 @@
       const msgEl = document.getElementById('msg');
       msgEl.className = '';
       msgEl.textContent = '';
+
+      if (!GAS_URL || GAS_URL.includes('YOUR_SCRIPT_ID')) {
+        msgEl.className = 'error';
+        msgEl.textContent = 'GAS_URL が未設定です。デプロイURLに差し替えてください。';
+        return;
+      }
 
       // バリデーション（既存コードそのまま）
       if (!selected) { msgEl.className = 'error'; msgEl.textContent = '明け渡し日を選択してください。'; return; }
