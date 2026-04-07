@@ -723,16 +723,26 @@
         msgEl.textContent = '写真をアップロード中...';
         const uploadResult = await callGAS('uploadPhoto', { dataUrl: compressed, filename: file.name });
 
+        const uploadData = (uploadResult && uploadResult.data) ? uploadResult.data : {};
         const uploadedPhotoUrl =
           uploadResult.photoUrl ||
           uploadResult.url ||
           uploadResult.fileUrl ||
-          (uploadResult.data && (uploadResult.data.photoUrl || uploadResult.data.url)) ||
+          uploadResult.imageUrl ||
+          uploadData.photoUrl ||
+          uploadData.url ||
+          uploadData.fileUrl ||
+          uploadData.imageUrl ||
           '';
 
-        if (!uploadedPhotoUrl) {
-          throw new Error('写真アップロードの応答に photoUrl がありません');
-        }
+        const uploadedPhotoId =
+          uploadResult.fileId ||
+          uploadResult.photoId ||
+          uploadResult.id ||
+          uploadData.fileId ||
+          uploadData.photoId ||
+          uploadData.id ||
+          '';
 
         // GASに送信（フォームデータ）
         msgEl.textContent = 'データを送信中...';
@@ -741,7 +751,13 @@
           email,
           organization: document.getElementById('organization').value.trim(),
           date: selected,
-          photoUrl: uploadedPhotoUrl
+          photoUrl: uploadedPhotoUrl,
+          photo: uploadedPhotoUrl,
+          fileUrl: uploadedPhotoUrl,
+          imageUrl: uploadedPhotoUrl,
+          photoId: uploadedPhotoId,
+          fileId: uploadedPhotoId,
+          uploadResult
         });
 
         // 成功
