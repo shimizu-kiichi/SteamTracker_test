@@ -9,6 +9,7 @@ if (!SPREADSHEET_ID) {
 const DOMAIN = 'mail.ryukoku.ac.jp';
 const LOCK_TIMEOUT_MS = 30000;
 const MAX_NAME_LENGTH = 50;
+const LINE_BOT_NOTIFY_URL = PropertiesService.getScriptProperties().getProperty('LINE_BOT_NOTIFY_URL');
 
 // ============================================================
 // doPost: 静的HTMLからのfetchを受け取るエントリーポイント
@@ -37,6 +38,45 @@ function doPost(e) {
     return ContentService
       .createTextOutput(JSON.stringify({ status: 'error', message: String(err) }))
       .setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
+// ============================================================
+// line_bot Webhookに新規登録通知を送信
+// ============================================================
+function notifyLineBotNewRegistration(registration) {
+  if (!LINE_BOT_NOTIFY_URL) {
+    return { success: false, message: 'LINE_BOT_NOTIFY_URL が未設定です。' };
+  }
+
+  const requestBody = {
+    action: 'notifyRegistration',
+    data: registration
+  };
+
+  const options = {
+    method: 'post',
+    contentType: 'application/json; charset=utf-8',
+    payload: JSON.stringify(requestBody),
+    muteHttpExceptions: true
+  };
+
+  try {
+    const res = UrlFetchApp.fetch(LINE_BOT_NOTIFY_URL, options);
+    const statusCode = res.getResponseCode();
+    const text = res.getContentText();
+    if (statusCode < 200 || statusCode >= 300) {
+      return { success: false, message: `HTTP ${statusCode}: ${text}` };
+    }
+
+    const parsed = text ? JSON.parse(text) : {};
+    if (parsed.status !== 'ok') {
+      return { success: false, message: parsed.message || 'line_bot がエラーを返しました。' };
+    }
+
+    return { success: true, message: '' };
+  } catch (err) {
+    return { success: false, message: String(err) };
   }
 }
 
@@ -206,6 +246,15 @@ STEAMコモンズ
         status: "error",
         message: `送信は完了しましたが、確認メールの送信に失敗しました。STEAMコモンズの管理者までお問い合わせください。（理由: ${emailResult.message}）`
       };
+    }
+
+    const lineResult = notifyLineBotNewRegistration({
+      name,
+      organization: payload.organization || '',
+      photoFileId: payload.photo || ''
+    });
+    if (!lineResult.success) {
+      Logger.log(`[フォーム送信] LINE通知失敗: ${lineResult.message}`);
     }
 
     return {

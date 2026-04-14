@@ -8,6 +8,32 @@ const SHEET_NAME_MANAGE = scriptProperties.getProperty('SHEET_NAME_MANAGE');
 const SPREAD_SHEET = SpreadsheetApp.openById(SPREAD_SHEET_ID);
 const SHEET = SPREAD_SHEET.getSheetByName(SHEET_NAME_MANAGE);
 
+// 新規登録通知専用のWebhook
+function doPost(e) {
+  try {
+    if (!e || !e.postData || !e.postData.contents) {
+      return jsonResponse({ status: 'error', message: 'POSTデータがありません。' });
+    }
+
+    const payload = JSON.parse(e.postData.contents);
+    if (payload.action !== 'notifyRegistration') {
+      return jsonResponse({ status: 'error', message: '不明なアクションです。' });
+    }
+
+    const result = registerNotify(payload.data || payload);
+    return jsonResponse(result);
+  } catch (err) {
+    Logger.log('doPost エラー: ' + err);
+    return jsonResponse({ status: 'error', message: String(err) });
+  }
+}
+
+function jsonResponse(data) {
+  return ContentService
+    .createTextOutput(JSON.stringify(data))
+    .setMimeType(ContentService.MimeType.JSON);
+}
+
 // 列要素
 const REGISTERED_AT = 0;        // フォーム送信時刻（自動記録）
 const EMAIL = 1;                // 登録者メール
@@ -59,56 +85,51 @@ function handoverDayRemind() {
   }
 }
 
-// 前日に登録された物品についての通知
-function registerNotify() {
-  const data = SHEET.getDataRange().getValues();
-  const yesterday = new Date();
-  yesterday.setDate(yesterday.getDate() - 1);
-  const yesterdayDate = Utilities.formatDate(yesterday, 'Asia/Tokyo', 'yyyy-MM-dd');
+// 新規登録時の通知
+// 呼び出し元から { name, organization, photoFileId } を受け取る
+function registerNotify(registration) {
+  if (!registration) {
+    return { status: 'error', message: '登録データがありません。' };
+  }
 
-  for (let i = 1; i < data.length; i++) {
-    const registeredAt = data[i][REGISTERED_AT];  // 登録日時
-    if (!registeredAt) continue;
-    // 日付部分だけ抽出
-    const registeredDate = Utilities.formatDate(new Date(registeredAt), 'Asia/Tokyo', 'yyyy-MM-dd');
-    if (registeredDate !== yesterdayDate) continue;
+  const name = String(registration.name || '').trim();
+  const organization = String(registration.organization || '').trim();
+  const photoFileId = String(registration.photoFileId || registration.photo || '').trim();
 
-    Logger.log(`登録通知: ${i}行目`);
-    const name = data[i][NAME];
-    const organ = data[i][ORGANIZATION];
+  if (!name || !photoFileId) {
+    return { status: 'error', message: '通知に必要な情報が不足しています。' };
+  }
 
-    // 画像付きメッセージ送信
-    const payload = {
-      to: USER_ID,
-      messages: [
-        {
-          type: "flex",
-          altText: "物品登録通知",
-          contents: {
-            type: "bubble",
-            hero: {
-              type: "image",
-              url: "https://drive.google.com/uc?export=view&id=" + data[i][PHOTO_FILE_ID],
-              size: "full",
-              aspectRatio: "20:13",
-              aspectMode: "cover"
-            },
-            body: {
-              type: "box",
-              layout: "vertical",
-              contents: [
-                { type: "text", text: "物品登録", weight: "bold", size: "xl" },
-                { type: "text", text: `${data[i][NAME]}（${data[i][ORGANIZATION]}）`, size: "md", wrap: true }
-              ]
-            }
+  const payload = {
+    to: USER_ID,
+    messages: [
+      {
+        type: 'flex',
+        altText: '物品登録通知',
+        contents: {
+          type: 'bubble',
+          hero: {
+            type: 'image',
+            url: 'https://drive.google.com/uc?export=view&id=' + photoFileId,
+            size: 'full',
+            aspectRatio: '20:13',
+            aspectMode: 'cover'
+          },
+          body: {
+            type: 'box',
+            layout: 'vertical',
+            contents: [
+              { type: 'text', text: '物品登録', weight: 'bold', size: 'xl' },
+              { type: 'text', text: `${name}（${organization || '団体名未入力'}）`, size: 'md', wrap: true }
+            ]
           }
         }
-      ]
-    };
-    sendLinePushObject(payload);
+      }
+    ]
+  };
 
-    // sendLineMessage(USER_ID, text);
-  }
+  sendLinePushObject(payload);
+  return { status: 'ok' };
 }
 
 // メールを送信
