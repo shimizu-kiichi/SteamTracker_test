@@ -65,6 +65,7 @@ function notifyLineBotNewRegistration(registration) {
     const res = UrlFetchApp.fetch(LINE_BOT_NOTIFY_URL, options);
     const statusCode = res.getResponseCode();
     const text = res.getContentText();
+    Logger.log(`[LINE連携] HTTP ${statusCode} body=${text}`);
     if (statusCode < 200 || statusCode >= 300) {
       return { success: false, message: `HTTP ${statusCode}: ${text}` };
     }
@@ -78,6 +79,19 @@ function notifyLineBotNewRegistration(registration) {
   } catch (err) {
     return { success: false, message: String(err) };
   }
+}
+
+// ============================================================
+// 手動疎通確認用: Apps Script エディタから実行
+// ============================================================
+function testLineBotNotify() {
+  const result = notifyLineBotNewRegistration({
+    name: '疎通テスト',
+    organization: 'テスト団体',
+    photoFileId: 'TEST_FILE_ID'
+  });
+  Logger.log('[LINE連携テスト] ' + JSON.stringify(result));
+  return result;
 }
 
 // ============================================================
@@ -253,13 +267,16 @@ STEAMコモンズ
       organization: payload.organization || '',
       photoFileId: payload.photo || ''
     });
+
+    let responseMessage = `送信完了しました。確認メールを ${email} に送信しました。届かない場合は迷惑メールフォルダをご確認ください。`;
     if (!lineResult.success) {
       Logger.log(`[フォーム送信] LINE通知失敗: ${lineResult.message}`);
+      responseMessage += '\n（管理者向けLINE通知に失敗しました。運用担当者に連絡してください。）';
     }
 
     return {
       status: "ok",
-      message: `送信完了しました。確認メールを ${email} に送信しました。届かない場合は迷惑メールフォルダをご確認ください。`
+      message: responseMessage
     };
 
   } catch (err) {

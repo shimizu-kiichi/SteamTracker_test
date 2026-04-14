@@ -128,7 +128,11 @@ function registerNotify(registration) {
     ]
   };
 
-  sendLinePushObject(payload);
+  const lineResult = sendLinePushObject(payload);
+  if (!lineResult.success) {
+    return { status: 'error', message: lineResult.message };
+  }
+
   return { status: 'ok' };
 }
 
@@ -170,9 +174,18 @@ function sendLineMessage(to, text, mailFailLog) {
 
   try {
     const response = UrlFetchApp.fetch(url, options);
-    Logger.log('送信成功: ' + response.getContentText());
+    const statusCode = response.getResponseCode();
+    const body = response.getContentText();
+    if (statusCode < 200 || statusCode >= 300) {
+      Logger.log(`送信失敗: HTTP ${statusCode} ${body}`);
+      return { success: false, message: `HTTP ${statusCode}: ${body}` };
+    }
+
+    Logger.log('送信成功: ' + body);
+    return { success: true, message: '' };
   } catch (e) {
     Logger.log('送信失敗: ' + e);
+    return { success: false, message: String(e) };
   }
 }
 
@@ -191,8 +204,17 @@ function sendLinePushObject(payload) {
 
   try {
     const res = UrlFetchApp.fetch(url, options);
-    Logger.log("送信成功: " + res.getContentText());
+    const statusCode = res.getResponseCode();
+    const body = res.getContentText();
+    if (statusCode < 200 || statusCode >= 300) {
+      Logger.log(`送信失敗: HTTP ${statusCode} ${body}`);
+      return { success: false, message: `HTTP ${statusCode}: ${body}` };
+    }
+
+    Logger.log("送信成功: " + body);
+    return { success: true, message: '' };
   } catch (e) {
     Logger.log("送信失敗: " + e);
+    return { success: false, message: String(e) };
   }
 }
