@@ -19,6 +19,7 @@ function doPost(e) {
   try {
     const payload = JSON.parse(e.postData.contents);
     const action = payload.action;
+    Logger.log('[doPost] action=' + action + ' payload=' + JSON.stringify(payload));
 
     let result;
     if (action === 'uploadPhoto') {
@@ -28,6 +29,7 @@ function doPost(e) {
     } else {
       result = { status: 'error', message: '不明なアクションです: ' + action };
     }
+    Logger.log('[doPost] result=' + JSON.stringify(result));
 
     return ContentService
       .createTextOutput(JSON.stringify(result))
@@ -46,6 +48,7 @@ function doPost(e) {
 // ============================================================
 function notifyLineBotNewRegistration(registration) {
   if (!LINE_BOT_NOTIFY_URL) {
+    Logger.log('[LINE連携] LINE_BOT_NOTIFY_URL が未設定');
     return { success: false, message: 'LINE_BOT_NOTIFY_URL が未設定です。' };
   }
 
@@ -62,6 +65,7 @@ function notifyLineBotNewRegistration(registration) {
   };
 
   try {
+    Logger.log('[LINE連携] request=' + JSON.stringify(requestBody));
     const res = UrlFetchApp.fetch(LINE_BOT_NOTIFY_URL, options);
     const statusCode = res.getResponseCode();
     const text = res.getContentText();
@@ -148,6 +152,7 @@ function submitForm(payload) {
   if (!payload) {
     return { status: "error", message: "送信データが空です" };
   }
+  Logger.log('[submitForm] start payload=' + JSON.stringify(payload));
 
   const email = (payload.email || "").trim();
   const emailLower = email.toLowerCase();
@@ -267,6 +272,7 @@ STEAMコモンズ
       organization: payload.organization || '',
       photoFileId: payload.photo || ''
     });
+    Logger.log('[submitForm] lineResult=' + JSON.stringify(lineResult));
 
     let responseMessage = `送信完了しました。確認メールを ${email} に送信しました。届かない場合は迷惑メールフォルダをご確認ください。`;
     if (!lineResult.success) {

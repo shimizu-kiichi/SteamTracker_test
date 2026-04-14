@@ -441,7 +441,7 @@
     // ============================================================
     // ★ 設定: GASのWebアプリURLをここに貼り付ける
     // ============================================================
-    const GAS_URL = 'https://script.google.com/macros/s/AKfycbxB3GlQbdzcPzMCEj9QaO4kpjoOATjZN61WRv4PrMSqasL3Bl003IU7IxKE1jOEBJ5d/exec';
+    const GAS_URL = 'https://script.google.com/macros/s/AKfycbyu6taRiN9QVC26y8DJf2zNkrvRlSfUg5IC1Cl8thEJH-vYnRmBYrWAr157fR6sDATf/exec';
     const DOMAIN = 'mail.ryukoku.ac.jp';
 
     // ============================================================
@@ -752,7 +752,7 @@
 
         // GASに送信（フォームデータ）
         msgEl.textContent = 'データを送信中...';
-        await callGAS('submitForm', {
+        const submitResult = await callGAS('submitForm', {
           name,
           email,
           organization: document.getElementById('organization').value.trim(),
@@ -768,7 +768,9 @@
 
         // 成功
         msgEl.className = 'success';
-        msgEl.textContent = `送信完了しました。確認メールを ${email} に送信しました。届かない場合は迷惑メールフォルダをご確認ください。`;
+        msgEl.textContent = (submitResult && submitResult.message)
+          ? submitResult.message
+          : `送信完了しました。確認メールを ${email} に送信しました。届かない場合は迷惑メールフォルダをご確認ください。`;
         document.getElementById('name').value = '';
         document.getElementById('date').value = '';
         document.getElementById('organization').value = '';

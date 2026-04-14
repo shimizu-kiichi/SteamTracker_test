@@ -12,15 +12,19 @@ const SHEET = SPREAD_SHEET.getSheetByName(SHEET_NAME_MANAGE);
 function doPost(e) {
   try {
     if (!e || !e.postData || !e.postData.contents) {
+      Logger.log('[line_bot doPost] POSTデータなし');
       return jsonResponse({ status: 'error', message: 'POSTデータがありません。' });
     }
 
     const payload = JSON.parse(e.postData.contents);
+    Logger.log('[line_bot doPost] action=' + payload.action + ' payload=' + JSON.stringify(payload));
     if (payload.action !== 'notifyRegistration') {
+      Logger.log('[line_bot doPost] 不明アクション: ' + payload.action);
       return jsonResponse({ status: 'error', message: '不明なアクションです。' });
     }
 
     const result = registerNotify(payload.data || payload);
+    Logger.log('[line_bot doPost] result=' + JSON.stringify(result));
     return jsonResponse(result);
   } catch (err) {
     Logger.log('doPost エラー: ' + err);
@@ -89,14 +93,17 @@ function handoverDayRemind() {
 // 呼び出し元から { name, organization, photoFileId } を受け取る
 function registerNotify(registration) {
   if (!registration) {
+    Logger.log('[line_bot registerNotify] registrationなし');
     return { status: 'error', message: '登録データがありません。' };
   }
 
   const name = String(registration.name || '').trim();
   const organization = String(registration.organization || '').trim();
   const photoFileId = String(registration.photoFileId || registration.photo || '').trim();
+  Logger.log('[line_bot registerNotify] name=' + name + ' organization=' + organization + ' photo=' + photoFileId);
 
   if (!name || !photoFileId) {
+    Logger.log('[line_bot registerNotify] 必須項目不足');
     return { status: 'error', message: '通知に必要な情報が不足しています。' };
   }
 
