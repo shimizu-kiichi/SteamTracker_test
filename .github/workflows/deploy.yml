@@ -3,11 +3,19 @@ name: Deploy to GitHub Pages
 on:
   push:
     branches:
-      - main  # mainブランチにpushしたら発動
+      - main
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
 
@@ -16,8 +24,11 @@ jobs:
           sed -i "s|%%EXTEND_GAS_URL%%|${{ secrets.EXTEND_GAS_URL }}|g" extend_form/index.html
           sed -i "s|%%STUFF_GAS_URL%%|${{ secrets.STUFF_GAS_URL }}|g" stuffForm/index.html
 
-      - name: Deploy to GitHub Pages
-        uses: peaceiris/actions-gh-pages@v4
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: .
+          path: .
+
+      - uses: actions/deploy-pages@v4
+        id: deployment
